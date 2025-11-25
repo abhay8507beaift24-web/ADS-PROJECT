@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shoe Recommendation System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        /* Custom scrollbar for aesthetic */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #9ca3af; /* gray-400 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e5e7eb; /* gray-200 */
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-10">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">👟 Shoe Recommender</h1>
+            <p class="text-gray-500 mt-2">Find your perfect pair by setting your criteria below.</p>
+        </header>
+
+        <!-- Input Section -->
+        <div id="criteria-form" class="bg-gray-50 p-6 rounded-xl shadow-inner mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="budget" class="block text-sm font-medium text-gray-700 mb-1">Max Budget ($)</label>
+                <input type="number" id="budget" value="150" min="20" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="e.g., 100">
+            </div>
+            <div>
+                <label for="color" class="block text-sm font-medium text-gray-700 mb-1">Color (Exact Match)</label>
+                <select id="color" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                    <option value="">Any Color</option>
+                    <option value="Black">Black</option>
+                    <option value="White">White</option>
+                    <option value="Red">Red</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Gray">Gray</option>
+                    <option value="Beige">Beige</option>
+                    <option value="Green">Green</option>
+                </select>
+            </div>
+            <div>
+                <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Shoe Type</label>
+                <select id="type" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                    <option value="">Any Type</option>
+                    <option value="Running">Running</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Formal">Formal</option>
+                    <option value="Training">Training</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button onclick="recommendShoes()" class="w-full bg-blue-600 text-white p-2.5 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-md shadow-blue-200">
+                    Find Shoes
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Recommended Shoes (<span id="result-count">0</span>)</h2>
+
+        <!-- Status Message Box -->
+        <div id="status-message" class="hidden bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg mb-6" role="alert">
+            <p class="font-bold">No Matches Found</p>
+            <p>Please try relaxing your budget or choosing 'Any Color'/'Any Type'.</p>
+        </div>
+
+
+        <!-- Results List -->
+        <div id="results-container" class="space-y-4 custom-scrollbar max-h-96 overflow-y-auto p-2">
+            <!-- Recommendations will be injected here -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. THE SHOE CATALOG (Simulating the Database/CSV) ---
+        // This JSON array acts as your database, which would typically be managed by Python/Pandas on a backend server.
+        const SHOE_CATALOG = [
+            { id: 101, brand: 'Nike', model: 'Air Max 90', type: 'Casual', color: 'White', price: 130.00, rating: 4.6, image: 'https://placehold.co/100x100/1e40af/ffffff?text=White+Air' },
+            { id: 102, brand: 'Adidas', model: 'Ultraboost 22', type: 'Running', color: 'Black', price: 180.00, rating: 4.8, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Ultra' },
+            { id: 103, brand: 'Puma', model: 'RS-X', type: 'Casual', color: 'Red', price: 85.50, rating: 4.2, image: 'https://placehold.co/100x100/dc2626/ffffff?text=Red+RS-X' },
+            { id: 104, brand: 'Brooks', model: 'Ghost 15', type: 'Running', color: 'Blue', price: 140.00, rating: 4.7, image: 'https://placehold.co/100x100/2563eb/ffffff?text=Blue+Ghost' },
+            { id: 105, brand: 'Vans', model: 'Old Skool', type: 'Casual', color: 'Black', price: 70.00, rating: 4.5, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Vans' },
+            { id: 106, brand: 'Nike', model: 'Pegasus 40', type: 'Running', color: 'White', price: 150.00, rating: 4.7, image: 'https://placehold.co/100x100/f3f4f6/000000?text=White+Pegasus' },
+            { id: 107, brand: 'Reebok', model: 'Club C 85', type: 'Casual', color: 'White', price: 80.00, rating: 4.3, image: 'https://placehold.co/100x100/f3f4f6/000000?text=White+Club+C' },
+            { id: 108, brand: 'Adidas', model: 'Gazelle', type: 'Casual', color: 'Green', price: 95.00, rating: 4.4, image: 'https://placehold.co/100x100/059669/ffffff?text=Green+Gazelle' },
+            { id: 109, brand: 'New Balance', model: '990v6', type: 'Running', color: 'Gray', price: 200.00, rating: 4.9, image: 'https://placehold.co/100x100/6b7280/ffffff?text=Gray+990' },
+            { id: 110, brand: 'Asics', model: 'GEL-Kayano 30', type: 'Running', color: 'Red', price: 160.00, rating: 4.6, image: 'https://placehold.co/100x100/dc2626/ffffff?text=Red+GEL' },
+            { id: 111, brand: 'Nike', model: 'Metcon 9', type: 'Training', color: 'Black', price: 140.00, rating: 4.7, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Metcon' },
+            { id: 112, brand: 'Under Armour', model: 'HOVR Phantom', type: 'Running', color: 'Gray', price: 110.00, rating: 4.0, image: 'https://placehold.co/100x100/6b7280/ffffff?text=Gray+HOVR' },
+            { id: 113, brand: 'Converse', model: 'Chuck Taylor', type: 'Casual', color: 'Black', price: 65.00, rating: 4.1, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Chuck' },
+            { id: 114, brand: 'Clarks', model: 'Desert Boot', type: 'Formal', color: 'Beige', price: 150.00, rating: 4.4, image: 'https://placehold.co/100x100/f5f5dc/000000?text=Beige+Boot' },
+            { id: 115, brand: 'Nike', model: 'Dunk Low', type: 'Casual', color: 'Blue', price: 115.00, rating: 4.8, image: 'https://placehold.co/100x100/2563eb/ffffff?text=Blue+Dunk' },
+            { id: 116, brand: 'Adidas', model: 'Samba OG', type: 'Casual', color: 'White', price: 100.00, rating: 4.9, image: 'https://placehold.co/100x100/f3f4f6/000000?text=White+Samba' },
+            { id: 117, brand: 'Timberland', model: 'Chukka Boot', type: 'Formal', color: 'Brown', price: 175.00, rating: 4.3, image: 'https://placehold.co/100x100/a0522d/ffffff?text=Brown+Chukka' },
+            { id: 118, brand: 'Puma', model: 'Velocity Nitro', type: 'Running', color: 'Red', price: 120.00, rating: 4.5, image: 'https://placehold.co/100x100/dc2626/ffffff?text=Red+Nitro' },
+            { id: 119, brand: 'New Balance', model: '550', type: 'Casual', color: 'White', price: 110.00, rating: 4.6, image: 'https://placehold.co/100x100/f3f4f6/000000?text=White+550' },
+            { id: 120, brand: 'Salomon', model: 'Speedcross 6', type: 'Training', color: 'Black', price: 135.00, rating: 4.7, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Speed' },
+            { id: 121, brand: 'Dr. Martens', model: '1460 Boot', type: 'Formal', color: 'Black', price: 160.00, rating: 4.5, image: 'https://placehold.co/100x100/000000/ffffff?text=Black+Boot' },
+            { id: 122, brand: 'Nike', model: 'Blazer Mid', type: 'Casual', color: 'White', price: 90.00, rating: 4.3, image: 'https://placehold.co/100x100/f3f4f6/000000?text=White+Blazer' },
+            { id: 123, brand: 'Skechers', model: 'Go Run', type: 'Running', color: 'Gray', price: 75.00, rating: 3.9, image: 'https://placehold.co/100x100/6b7280/ffffff?text=Gray+Run' },
+            { id: 124, brand: 'Crocs', model: 'Classic Clog', type: 'Casual', color: 'Green', price: 50.00, rating: 4.0, image: 'https://placehold.co/100x100/059669/ffffff?text=Green+Clog' },
+    { "id": 101, "brand": "Nike", "model": "Air Max 90", "type": "Casual", "color": "White", "price": 130.00, "rating": 4.6, "image": "https://placehold.co/100x100/1e40af/ffffff?text=White+Air" },
+    { "id": 102, "brand": "Adidas", "model": "Ultraboost 22", "type": "Running", "color": "Black", "price": 180.00, "rating": 4.8, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Ultra" },
+    { "id": 103, "brand": "Puma", "model": "RS-X", "type": "Casual", "color": "Red", "price": 85.50, "rating": 4.2, "image": "https://placehold.co/100x100/dc2626/ffffff?text=Red+RS-X" },
+    { "id": 104, "brand": "Brooks", "model": "Ghost 15", "type": "Running", "color": "Blue", "price": 140.00, "rating": 4.7, "image": "https://placehold.co/100x100/2563eb/ffffff?text=Blue+Ghost" },
+    { "id": 105, "brand": "Vans", "model": "Old Skool", "type": "Casual", "color": "Black", "price": 70.00, "rating": 4.5, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Vans" },
+    { "id": 106, "brand": "Nike", "model": "Pegasus 40", "type": "Running", "color": "White", "price": 150.00, "rating": 4.7, "image": "https://placehold.co/100x100/f3f4f6/000000?text=White+Pegasus" },
+    { "id": 107, "brand": "Reebok", "model": "Club C 85", "type": "Casual", "color": "White", "price": 80.00, "rating": 4.3, "image": "https://placehold.co/100x100/f3f4f6/000000?text=White+Club+C" },
+    { "id": 108, "brand": "Adidas", "model": "Gazelle", "type": "Casual", "color": "Green", "price": 95.00, "rating": 4.4, "image": "https://placehold.co/100x100/059669/ffffff?text=Green+Gazelle" },
+    { "id": 109, "brand": "New Balance", "model": "990v6", "type": "Running", "color": "Gray", "price": 200.00, "rating": 4.9, "image": "https://placehold.co/100x100/6b7280/ffffff?text=Gray+990" },
+    { "id": 110, "brand": "Asics", "model": "GEL-Kayano 30", "type": "Running", "color": "Red", "price": 160.00, "rating": 4.6, "image": "https://placehold.co/100x100/dc2626/ffffff?text=Red+GEL" },
+    { "id": 111, "brand": "Nike", "model": "Metcon 9", "type": "Training", "color": "Black", "price": 140.00, "rating": 4.7, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Metcon" },
+    { "id": 112, "brand": "Under Armour", "model": "HOVR Phantom", "type": "Running", "color": "Gray", "price": 110.00, "rating": 4.0, "image": "https://placehold.co/100x100/6b7280/ffffff?text=Gray+HOVR" },
+    { "id": 113, "brand": "Converse", "model": "Chuck Taylor", "type": "Casual", "color": "Black", "price": 65.00, "rating": 4.1, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Chuck" },
+    { "id": 114, "brand": "Clarks", "model": "Desert Boot", "type": "Formal", "color": "Beige", "price": 150.00, "rating": 4.4, "image": "https://placehold.co/100x100/f5f5dc/000000?text=Beige+Boot" },
+    { "id": 115, "brand": "Nike", "model": "Dunk Low", "type": "Casual", "color": "Blue", "price": 115.00, "rating": 4.8, "image": "https://placehold.co/100x100/2563eb/ffffff?text=Blue+Dunk" },
+    { "id": 116, "brand": "Adidas", "model": "Samba OG", "type": "Casual", "color": "White", "price": 100.00, "rating": 4.9, "image": "https://placehold.co/100x100/f3f4f6/000000?text=White+Samba" },
+    { "id": 117, "brand": "Timberland", "model": "Chukka Boot", "type": "Formal", "color": "Brown", "price": 175.00, "rating": 4.3, "image": "https://placehold.co/100x100/a0522d/ffffff?text=Brown+Chukka" },
+    { "id": 118, "brand": "Puma", "model": "Velocity Nitro", "type": "Running", "color": "Red", "price": 120.00, "rating": 4.5, "image": "https://placehold.co/100x100/dc2626/ffffff?text=Red+Nitro" },
+    { "id": 119, "brand": "New Balance", "model": "550", "type": "Casual", "color": "White", "price": 110.00, "rating": 4.6, "image": "https://placehold.co/100x100/f3f4f6/000000?text=White+550" },
+    { "id": 120, "brand": "Salomon", "model": "Speedcross 6", "type": "Training", "color": "Black", "price": 135.00, "rating": 4.7, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Speed" },
+    { "id": 121, "brand": "Dr. Martens", "model": "1460 Boot", "type": "Formal", "color": "Black", "price": 160.00, "rating": 4.5, "image": "https://placehold.co/100x100/000000/ffffff?text=Black+Boot" },
+    { "id": 122, "brand": "Nike", "model": "Blazer Mid", "type": "Casual", "color": "White", "price": 90.00, "rating": 4.3, "image": "https://placehold.co/100x100/f3f4f6/000000?text=White+Blazer" },
+    { "id": 123, "brand": "Skechers", "model": "Go Run", "type": "Running", "color": "Gray", "price": 75.00, "rating": 3.9, "image": "https://placehold.co/100x100/6b7280/ffffff?text=Gray+Run" },
+    { "id": 124, "brand": "Crocs", "model": "Classic Clog", "type": "Casual", "color": "Green", "price": 50.00, "rating": 4.0, "image": "https://placehold.co/100x100/059669/ffffff?text=Green+Clog" }
+
+];
+
+
+        // --- 2. CORE RECOMMENDATION LOGIC (The Python/Pandas Simulation in JS) ---
+
+        function getCriteria() {
+            // Retrieve values from the UI input fields
+            const budget = parseFloat(document.getElementById('budget').value) || Infinity;
+            const color = document.getElementById('color').value;
+            const type = document.getElementById('type').value;
+
+            return { budget, color, type };
+        }
+
+        function filterShoes() {
+            const criteria = getCriteria();
+
+            // The main filtering logic
+            let results = SHOE_CATALOG.filter(shoe => {
+                // 1. Budget Filter (Mandatory)
+                const passesBudget = shoe.price <= criteria.budget;
+
+                // 2. Color Filter (Optional)
+                const passesColor = !criteria.color || shoe.color === criteria.color;
+
+                // 3. Type Filter (Optional)
+                const passesType = !criteria.type || shoe.type === criteria.type;
+
+                return passesBudget && passesColor && passesType;
+            });
+
+            // Sorting: The Python 'sort_values' equivalent - sort by Rating (Highest to Lowest)
+            results.sort((a, b) => b.rating - a.rating);
+
+            return results;
+        }
+
+        function recommendShoes() {
+            const recommended = filterShoes();
+            displayResults(recommended);
+        }
+
+        // --- 3. DISPLAY RESULTS ---
+
+        function createShoeCard(shoe) {
+            // Function to create the HTML structure for a single recommended shoe
+            return `
+                <div class="flex items-center space-x-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition duration-300">
+                    <!-- Image Placeholder -->
+                    <img src="${shoe.image}" alt="${shoe.brand} ${shoe.model}" onerror="this.onerror=null;this.src='https://placehold.co/100x100/e5e7eb/000000?text=No+Image'" class="w-16 h-16 object-cover rounded-lg shadow-md flex-shrink-0">
+
+                    <!-- Details -->
+                    <div class="flex-grow">
+                        <p class="text-lg font-semibold text-gray-800">${shoe.brand} ${shoe.model}</p>
+                        <p class="text-sm text-gray-500">${shoe.type} - ${shoe.color}</p>
+                    </div>
+
+                    <!-- Price & Rating -->
+                    <div class="text-right">
+                        <p class="text-xl font-bold text-green-600">$${shoe.price.toFixed(2)}</p>
+                        <p class="text-sm text-yellow-500 flex items-center justify-end">
+                            <svg class="w-4 h-4 mr-1 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.487 7.55l6.568-.955L10 1l2.945 5.595 6.568.955-4.758 4.095 1.123 6.545L10 15z"/></svg>
+                            ${shoe.rating.toFixed(1)}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayResults(shoes) {
+            const container = document.getElementById('results-container');
+            const countSpan = document.getElementById('result-count');
+            const messageBox = document.getElementById('status-message');
+
+            container.innerHTML = '';
+            countSpan.textContent = shoes.length;
+
+            if (shoes.length === 0) {
+                messageBox.classList.remove('hidden');
+                // Display alternative message or popular shoes if no matches
+                // For this version, we just show the no-match message
+            } else {
+                messageBox.classList.add('hidden');
+                shoes.forEach(shoe => {
+                    container.innerHTML += createShoeCard(shoe);
+                });
+            }
+        }
+
+        // --- 4. INITIALIZATION ---
+        // Run recommendations on load with default values
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add event listeners to input fields to trigger search on change
+            document.getElementById('budget').addEventListener('input', recommendShoes);
+            document.getElementById('color').addEventListener('change', recommendShoes);
+            document.getElementById('type').addEventListener('change', recommendShoes);
+
+            // Initial call to populate the list
+            recommendShoes();
+        });
+    </script><link rel="stylesheet" href="style.css">
+</body>
+</html>
